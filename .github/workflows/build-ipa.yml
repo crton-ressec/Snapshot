@@ -9,6 +9,7 @@ jobs:
   build:
     name: Build iOS Unsigned IPA
     runs-on: macos-14
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -22,10 +23,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate app icon (🤗 on green)
+      - name: Generate app icons
         run: node scripts/generate-icon.js
 
-      - name: Prebuild iOS native project
+      - name: Verify icons exist
+        run: ls -la assets/ && file assets/icon.png
+
+      - name: Prebuild iOS
         run: npx expo prebuild --platform ios --clean
         env:
           EXPO_NO_TELEMETRY: 1
@@ -50,31 +54,29 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             archive
 
-      - name: Package IPA (unsigned)
+      - name: Package IPA
         run: |
           cd ios
           mkdir -p Payload
           APP_PATH=$(find build -name "Snapshot.app" -type d | head -1)
-          if [ -n "$APP_PATH" ]; then
-            cp -r "$APP_PATH" Payload/
-            zip -r Snapshot-unsigned.ipa Payload
-            mkdir -p ../artifacts
-            mv Snapshot-unsigned.ipa ../artifacts/
-            ls -la ../artifacts/
-          else
+          echo "Found app at: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
             echo "ERROR: Snapshot.app not found"
             find build -type d || true
             exit 1
           fi
+          cp -r "$APP_PATH" Payload/
+          zip -r Snapshot-unsigned.ipa Payload
+          mkdir -p ../artifacts
+          mv Snapshot-unsigned.ipa ../artifacts/
+          ls -lh ../artifacts/
 
-      - name: Upload IPA artifact
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: Snapshot-unsigned-ipa
           path: artifacts/Snapshot-unsigned.ipa
           retention-days: 14
 
-      - name: Summary
-        run: |
-          echo "## Snapshot Unsigned IPA Ready 🤗" >> $GITHUB_STEP_SUMMARY
-          echo "Download the artifact from this Actions run." >> $GITHUB_STEP_SUMMARY
+      - name: Done
+        run: echo "IPA built successfully"
