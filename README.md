@@ -1,108 +1,78 @@
 # Snapshot 🤗
 
-A Snapchat-style social app built with **React Native (Expo)** + **Firebase**.
+Snapchat-style social app built with **React Native (Expo)** + **Firebase**.
 
-- Ephemeral snaps that disappear after viewing
-- Stories (24h)
-- Camera capture
-- Friends feed
-- Chat
-- Auth (email/password)
+**Live repo:** https://github.com/crton-ressec/Snapshot
 
-App icon: 🤗 on green background.
+## Features
+
+- 📸 Full-screen camera (photo)
+- ⏳ Ephemeral snaps with view timer (disappear after viewing)
+- 📱 Stories (24-hour expiry)
+- 👥 Friends feed of unopened snaps
+- 💬 Chat list
+- 🔐 Email/password authentication
+- 🎨 Dark Snapchat-inspired UI with green accent + 🤗 icon
 
 ## Quick Start
 
-### 1. Firebase Setup
+### 1. Firebase (required)
 
-1. Create a project at [Firebase Console](https://console.firebase.google.com)
-2. Enable **Authentication** → Email/Password
-3. Create a **Firestore** database
-4. Enable **Storage**
-5. Register a **Web app** and copy the config
-6. Paste the config into `lib/firebase.ts`
+**→ Follow the full guide: [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)**
 
-Recommended Firestore rules (for development):
+You must create a Firebase project, enable Auth + Firestore + Storage, and paste your config into `lib/firebase.ts`.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-Storage rules (dev):
-
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-### 2. Install & Run
+### 2. Run locally
 
 ```bash
+git clone https://github.com/crton-ressec/Snapshot.git
+cd Snapshot
 npm install
 npx expo start
 ```
 
-Press `i` for iOS simulator (requires Mac + Xcode).
+Press `i` for iOS simulator (Mac + Xcode required).
 
-### 3. Build unsigned IPA (GitHub Actions)
+### 3. Unsigned IPA via GitHub Actions
 
-This repo includes a GitHub Actions workflow that builds an **unsigned IPA** on every push to `main` (or manually).
+1. Go to the **Actions** tab
+2. Select **Build Unsigned IPA**
+3. Click **Run workflow**
+4. Download the artifact when finished
 
-Go to the **Actions** tab → "Build Unsigned IPA" → Run workflow.
-
-The artifact will appear when the job finishes.
-
-> Note: Unsigned IPAs can be installed on devices with developer mode / via AltStore, Sideloadly, or after re-signing with your own certificate.
+Install with Sideloadly / AltStore or re-sign with your certificate.
 
 ## Project Structure
 
 ```
 app/
-  (auth)/     → Login & Sign up
-  (tabs)/     → Main tab screens (Friends, Stories, Camera, Chat, Profile)
-  camera.tsx  → Full-screen camera
-  view-snap.tsx → Ephemeral snap viewer with timer
-lib/firebase.ts
-context/AuthContext.tsx
-types/
-assets/       → App icon (🤗 on green)
+  (auth)/          Login & Sign up
+  (tabs)/          Friends · Stories · Camera · Chat · Profile
+  camera.tsx       Full-screen camera capture
+  view-snap.tsx    Ephemeral viewer with countdown timer
+lib/firebase.ts    ← Put your Firebase config here
+context/           Auth provider
+types/             TypeScript interfaces
+scripts/           Icon generator (🤗 on green)
 ```
 
-## Features Implemented
+## Snapchat-style UX notes
 
-- [x] Email/password auth with Firebase
-- [x] Camera capture (photo)
-- [x] Upload snap to Firebase Storage
-- [x] Ephemeral snaps (view once + timer)
-- [x] Stories (24h expiry)
-- [x] Friends list of unopened snaps
-- [x] Basic chat list
-- [x] Profile + sign out
-- [x] Dark Snapchat-like UI
-- [x] Custom app icon
+- Camera is one tap away from every screen
+- Snaps open full-screen with a progress bar + auto-close timer
+- Dark theme, large emoji icons, green accent (`#00C853`)
+- Empty states encourage taking a snap
+- Stories shown in a grid with green rings
 
-## Next Steps You Can Add
+## Coming / Easy to extend
 
-- Friend requests / search users
-- Video capture + recording
-- Real AR filters / lenses
+- Friend search & requests
+- Pick recipient before sending snap
+- Video capture
+- Real-time chat messages
 - Push notifications
-- Better chat (real-time messages)
-- Location / Snap Map style features
+- AR filters / lenses
 
 ---
 
-Built with 🤗 for the Snapshot project.
+Built with 🤗
