@@ -18,19 +18,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm install
 
       - name: Generate app icon (🤗 on green)
         run: node scripts/generate-icon.js
 
-      - name: Setup Expo
-        run: npm install -g expo-cli eas-cli || true
-
       - name: Prebuild iOS native project
-        run: npx expo prebuild --platform ios --clean --no-install
+        run: npx expo prebuild --platform ios --clean
         env:
           EXPO_NO_TELEMETRY: 1
 
@@ -52,20 +48,21 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO \
-            archive | xcpretty || true
+            archive
 
       - name: Package IPA (unsigned)
         run: |
           cd ios
           mkdir -p Payload
-          if [ -d "build/Snapshot.xcarchive/Products/Applications/Snapshot.app" ]; then
-            cp -r build/Snapshot.xcarchive/Products/Applications/Snapshot.app Payload/
+          APP_PATH=$(find build -name "Snapshot.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            cp -r "$APP_PATH" Payload/
             zip -r Snapshot-unsigned.ipa Payload
             mkdir -p ../artifacts
             mv Snapshot-unsigned.ipa ../artifacts/
             ls -la ../artifacts/
           else
-            echo "Archive not found - listing build dir:"
+            echo "ERROR: Snapshot.app not found"
             find build -type d || true
             exit 1
           fi
@@ -80,5 +77,4 @@ jobs:
       - name: Summary
         run: |
           echo "## Snapshot Unsigned IPA Ready 🤗" >> $GITHUB_STEP_SUMMARY
-          echo "Download the artifact from the Actions run." >> $GITHUB_STEP_SUMMARY
-          echo "Install via Sideloadly, AltStore, or re-sign with your own certificate." >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact from this Actions run." >> $GITHUB_STEP_SUMMARY
