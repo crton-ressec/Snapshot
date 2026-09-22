@@ -1,29 +1,41 @@
 # Snapshot 🤗
 
-Snapchat-style app (React Native + Expo + Firebase)
+Snapchat-style app — React Native (Expo) + Firebase.
 
 **Repo:** https://github.com/crton-ressec/Snapshot
 
+---
+
 ## 1. Add your Firebase config (required)
 
-Open this file and replace the placeholders:
+Open this file and paste your values:
 
-**`lib/firebase.ts`**
-
-```ts
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",                    // ← paste here
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
+```
+lib/firebase.ts
 ```
 
-Full step-by-step: **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)**
+Get the values from [Firebase Console](https://console.firebase.google.com) → Project → Web app.
 
-## 2. Run the app
+Also enable:
+- Authentication → Email/Password
+- Firestore Database
+- Storage
+
+Full guide with rules: **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)**
+
+---
+
+## 2. Get the unsigned IPA
+
+1. Go to **Actions** tab: https://github.com/crton-ressec/Snapshot/actions
+2. Click the latest **Build Unsigned IPA** run
+3. When it finishes green, download the artifact **Snapshot-unsigned-ipa**
+
+Install with Sideloadly, AltStore, or re-sign with your Apple certificate.
+
+---
+
+## 3. Run locally (optional)
 
 ```bash
 git clone https://github.com/crton-ressec/Snapshot.git
@@ -32,24 +44,18 @@ npm install
 npx expo start
 ```
 
-## 3. Get the unsigned IPA
-
-1. Go to **Actions** tab
-2. Click **Build Unsigned IPA**
-3. Click **Run workflow** → Run
-4. When it finishes, download the **Snapshot-unsigned-ipa** artifact
+---
 
 ## Features
 
-- Full-screen camera
-- Take photo → Send To screen (pick friends)
-- Ephemeral snaps with timer
+- Camera + Send To (pick friends)
+- Ephemeral snaps (timer + disappear)
 - Stories (24h)
 - Friends feed
 - Chat list
-- Profile
-- Dark Snapchat-style UI + green 🤗 icon
+- Auth (email/password)
+- Dark Snapchat-style UI + 🤗 green icon
 
 ---
 
-After you paste your Firebase config, the app works.
+After you paste Firebase config the app is ready.
