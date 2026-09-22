@@ -1,0 +1,84 @@
+name: Build Unsigned IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Generate app icon (🤗 on green)
+        run: node scripts/generate-icon.js
+
+      - name: Setup Expo
+        run: npm install -g expo-cli eas-cli || true
+
+      - name: Prebuild iOS native project
+        run: npx expo prebuild --platform ios --clean --no-install
+        env:
+          EXPO_NO_TELEMETRY: 1
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build unsigned archive
+        run: |
+          cd ios
+          xcodebuild \
+            -workspace Snapshot.xcworkspace \
+            -scheme Snapshot \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $PWD/build/Snapshot.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            archive | xcpretty || true
+
+      - name: Package IPA (unsigned)
+        run: |
+          cd ios
+          mkdir -p Payload
+          if [ -d "build/Snapshot.xcarchive/Products/Applications/Snapshot.app" ]; then
+            cp -r build/Snapshot.xcarchive/Products/Applications/Snapshot.app Payload/
+            zip -r Snapshot-unsigned.ipa Payload
+            mkdir -p ../artifacts
+            mv Snapshot-unsigned.ipa ../artifacts/
+            ls -la ../artifacts/
+          else
+            echo "Archive not found - listing build dir:"
+            find build -type d || true
+            exit 1
+          fi
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snapshot-unsigned-ipa
+          path: artifacts/Snapshot-unsigned.ipa
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "## Snapshot Unsigned IPA Ready 🤗" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact from the Actions run." >> $GITHUB_STEP_SUMMARY
+          echo "Install via Sideloadly, AltStore, or re-sign with your own certificate." >> $GITHUB_STEP_SUMMARY
