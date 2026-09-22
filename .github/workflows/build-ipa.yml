@@ -9,7 +9,7 @@ jobs:
   build:
     name: Build iOS Unsigned IPA
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 50
 
     steps:
       - name: Checkout
@@ -26,8 +26,8 @@ jobs:
       - name: Generate app icons
         run: node scripts/generate-icon.js
 
-      - name: Verify icons exist
-        run: ls -la assets/ && file assets/icon.png
+      - name: Verify icons
+        run: ls -la assets/
 
       - name: Prebuild iOS
         run: npx expo prebuild --platform ios --clean
@@ -39,34 +39,44 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Build unsigned archive
+      - name: List schemes (debug)
         run: |
           cd ios
+          xcodebuild -list -workspace Snapshot.xcworkspace || true
+
+      - name: Build (unsigned)
+        run: |
+          cd ios
+          set -o pipefail
           xcodebuild \
             -workspace Snapshot.xcworkspace \
             -scheme Snapshot \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath $PWD/build/Snapshot.xcarchive \
-            CODE_SIGN_IDENTITY="" \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/DerivedData" \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            archive
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build 2>&1 | tee xcodebuild.log
 
       - name: Package IPA
         run: |
           cd ios
-          mkdir -p Payload
-          APP_PATH=$(find build -name "Snapshot.app" -type d | head -1)
-          echo "Found app at: $APP_PATH"
+          APP_PATH=$(find DerivedData -name "Snapshot.app" -type d | head -1)
+          echo "Found app: $APP_PATH"
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: Snapshot.app not found"
-            find build -type d || true
+            echo "=== xcodebuild.log (last 200 lines) ==="
+            tail -200 xcodebuild.log || true
+            echo "=== DerivedData tree ==="
+            find DerivedData -maxdepth 5 -type d || true
             exit 1
           fi
+          mkdir -p Payload
           cp -r "$APP_PATH" Payload/
-          zip -r Snapshot-unsigned.ipa Payload
+          zip -qr Snapshot-unsigned.ipa Payload
           mkdir -p ../artifacts
           mv Snapshot-unsigned.ipa ../artifacts/
           ls -lh ../artifacts/
@@ -76,7 +86,7 @@ jobs:
         with:
           name: Snapshot-unsigned-ipa
           path: artifacts/Snapshot-unsigned.ipa
-          retention-days: 14
+          retention-days: 30
 
       - name: Done
-        run: echo "IPA built successfully"
+        run: echo "✅ Unsigned IPA built successfully"
