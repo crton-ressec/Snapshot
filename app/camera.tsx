@@ -6,22 +6,15 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { storage, db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-
-const { width, height } = Dimensions.get('window');
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [capturing, setCapturing] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -59,63 +52,21 @@ export default function CameraScreen() {
     setCapturing(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.85,
         skipProcessing: false,
       });
       if (photo?.uri) {
-        await sendSnap(photo.uri, 'image');
+        // Go to Snapchat-style "Send To" screen
+        router.push({
+          pathname: '/send-snap',
+          params: { uri: photo.uri, mediaType: 'image' },
+        });
       }
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Failed to take picture');
     } finally {
       setCapturing(false);
-    }
-  };
-
-  const sendSnap = async (uri: string, mediaType: 'image' | 'video') => {
-    if (!user) return;
-    setUploading(true);
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const filename = `snaps/${user.uid}/${Date.now()}.jpg`;
-      const storageRef = ref(storage, filename);
-      await uploadBytes(storageRef, blob);
-      const mediaUrl = await getDownloadURL(storageRef);
-
-      const expiresAt = Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
-      await addDoc(collection(db, 'snaps'), {
-        senderId: user.uid,
-        senderName: user.displayName || 'Someone',
-        recipientId: user.uid, // demo: send to self
-        mediaUrl,
-        mediaType,
-        createdAt: serverTimestamp(),
-        expiresAt,
-        viewed: false,
-        durationSeconds: 10,
-      });
-
-      await addDoc(collection(db, 'stories'), {
-        userId: user.uid,
-        userName: user.displayName || 'Someone',
-        mediaUrl,
-        mediaType,
-        createdAt: serverTimestamp(),
-        expiresAt,
-        viewCount: 0,
-        viewers: [],
-      });
-
-      Alert.alert('Sent! 🤗', 'Your snap was sent (and added to your story)', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert('Upload failed', error.message || 'Check your Firebase config');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -131,6 +82,7 @@ export default function CameraScreen() {
         facing={facing}
         mode="picture"
       >
+        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.topButton}>
             <Text style={styles.topButtonText}>✕</Text>
@@ -141,14 +93,16 @@ export default function CameraScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Bottom controls - Snapchat style big shutter */}
         <View style={styles.bottomBar}>
           <View style={styles.sideButton} />
           <TouchableOpacity
-            style={[styles.captureButton, (capturing || uploading) && styles.captureDisabled]}
+            style={[styles.captureButton, capturing && styles.captureDisabled]}
             onPress={takePicture}
-            disabled={capturing || uploading}
+            disabled={capturing}
+            activeOpacity={0.7}
           >
-            {uploading ? (
+            {capturing ? (
               <ActivityIndicator color="#00C853" size="large" />
             ) : (
               <View style={styles.captureInner} />
@@ -182,7 +136,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -194,7 +148,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
@@ -208,10 +162,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 5,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 6,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
@@ -221,9 +175,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   captureInner: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#fff',
   },
   sideButton: {
@@ -233,7 +187,7 @@ const styles = StyleSheet.create({
   hint: {
     color: '#fff',
     fontSize: 12,
-    opacity: 0.8,
+    opacity: 0.85,
   },
   permissionText: {
     color: '#fff',

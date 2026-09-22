@@ -28,6 +28,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="send-snap"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
             name="view-snap"
             options={{
               presentation: 'fullScreenModal',
